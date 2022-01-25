@@ -78,12 +78,21 @@ client.on("message_revoke_everyone", async (after, before) => {
     let chat = await after.getChat();
     let author = before.author ?? before.from;
     let authorName = null;
+    let mentions = [];      // store mentioned user ids
     if (chat.isGroup) {
+        mentions.push(before.author)    // Push author of message as initial mention
       for (participant of chat.participants) {
         if (parseInt(participant.id.user) === parseInt(author)) {
           let contact = await client.getContactById(participant.id._serialized);
-          authorName = contact.pushname;
+          if(chat.isGroup){
+              authorName = `@${contact.id.user}`;       // Set author name to user id, this is required to convert user to mention
+          }
+          else{
+              authorName = contact.pushname
+          }
           console.log(authorName);
+          let inChatMentions = (await before.getMentions()).map(contact => contact.id._serialized); // Get mentioned user's ids
+          mentions.push(...inChatMentions)
         }
       }
     } 
@@ -93,6 +102,7 @@ client.on("message_revoke_everyone", async (after, before) => {
     _.DELETEDMESSAGE[emojiStrip(chat.name)].unshift({
       message: before.body,
       from: authorName ? authorName : parseInt(author),
+      mentions: mentions,       // Add mentions to DB
     });
 
     if (_.DELETEDMESSAGE[emojiStrip(chat.name)].length > 15)

@@ -113,7 +113,7 @@ module.exports.parseMsg = async function(msg, client){
       if(body.startsWith(_.REVEAL_COMMAND)){
         let index = _.REVEAL_COMMAND.length;
         let count = body.substr(index).trim();
-        revealMessage(msg, count)
+        revealMessage(msg, count, client)
       }
       if(body.startsWith(_.STICKER_COMMAND)){
         sticker(msg);
@@ -385,7 +385,7 @@ async function unblockGroup(msg){
   });
 }
 
-async function revealMessage(msg, count) {
+async function revealMessage(msg, count, client) {
   // _.DELETEDMESSAGE[msg.]
   let chat = await msg.getChat();
   let deletedMessage = _.DELETEDMESSAGE[emojiStrip(chat.name)];
@@ -408,11 +408,13 @@ async function revealMessage(msg, count) {
 
     let replyMessage = `[Showing ${cnt}/${total} deleted messages]\n\n`;
 
+    let mentions = []       // List of mentioned usesrs in messages
     for(let i=0;i<cnt;i++){
       replyMessage += `Message:${elements[i].message}\nFrom:${elements[i].from}\n\n`;
+      mentions.push(...(await Promise.all(elements[i].mentions.map(id => client.getContactById(id)))))  // add mentioned users in current message to the mentioned users list
     }
 
-    sendAndDeleteAfter(msg, prettyPrint(replyMessage));
+    sendAndDeleteAfter(msg, prettyPrint(replyMessage), {mentions});
   }
 }
 
